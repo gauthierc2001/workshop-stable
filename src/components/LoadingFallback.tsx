@@ -35,17 +35,26 @@ export function LoadingFallback() {
         </div>
         
         {/* Loading Text */}
-        <h2 className="text-white text-2xl font-bold mb-2">Kubo Loading</h2>
-        <p className="text-gray-400 text-sm mb-8">Preparing 3D Workshop Environment</p>
+        <h2 className="text-white text-2xl font-bold mb-8">Entering Kubo</h2>
         
-        {/* Progress Bar Container */}
-        <div className="w-full bg-gray-800 rounded-full h-3 mb-4 overflow-hidden">
-          <div 
-            className="bg-white h-full rounded-full transition-all duration-300 ease-out relative"
-            style={{ width: `${progress}%` }}
-          >
-            {/* Subtle glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30"></div>
+        {/* Old School Progress Bar with Rectangles */}
+        <div className="w-full max-w-xs mx-auto mb-4">
+          <div className="flex gap-1 h-4">
+            {Array.from({ length: 20 }, (_, i) => {
+              const segmentProgress = (progress / 100) * 20;
+              const isActive = i < segmentProgress;
+              return (
+                <div
+                  key={i}
+                  className={`flex-1 transition-all duration-200 ${
+                    isActive ? 'bg-white' : 'bg-gray-800'
+                  }`}
+                  style={{
+                    opacity: isActive ? 1 : 0.3
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
         
@@ -53,13 +62,6 @@ export function LoadingFallback() {
         <p className="text-white text-lg font-mono">
           {Math.round(progress)}%
         </p>
-        
-        {/* Subtle animation dots */}
-        <div className="flex justify-center mt-4 space-x-1">
-          <div className="w-2 h-2 bg-gray-600 rounded-full animate-pulse" style={{animationDelay: '0ms'}}></div>
-          <div className="w-2 h-2 bg-gray-600 rounded-full animate-pulse" style={{animationDelay: '200ms'}}></div>
-          <div className="w-2 h-2 bg-gray-600 rounded-full animate-pulse" style={{animationDelay: '400ms'}}></div>
-        </div>
       </div>
     </div>
   )
