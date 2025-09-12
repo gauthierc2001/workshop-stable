@@ -14,8 +14,44 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Workshop 3D - Interactive Room",
-  description: "An interactive 3D workshop room built with Next.js 14 and React Three Fiber",
+  title: "Kubo",
+  description: "Discover KuboNet, the foundational blockchain protocol for robotics coordination. Explore the future of robotic interoperability in an immersive 3D workshop environment.",
+  keywords: "KuboNet, robotics, blockchain, protocol, interoperability, robotics internet protocol, automation",
+  authors: [{ name: "KuboNet" }],
+  openGraph: {
+    title: "KuboNet - Robotics Internet Protocol",
+    description: "Discover KuboNet, the foundational blockchain protocol for robotics coordination. Explore the future of robotic interoperability.",
+    url: "https://kubonet.com",
+    siteName: "KuboNet",
+    images: [
+      {
+        url: "/images/logo.jpg",
+        width: 1200,
+        height: 630,
+        alt: "KuboNet - Robotics Internet Protocol",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KuboNet - Robotics Internet Protocol",
+    description: "Discover KuboNet, the foundational blockchain protocol for robotics coordination.",
+    images: ["/images/logo.jpg"],
+    creator: "@UseKuboNet",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({
