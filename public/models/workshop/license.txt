@@ -1,0 +1,11 @@
+Model Information:
+* title:	Workshop
+* source:	https://sketchfab.com/3d-models/workshop-0bee3f9f3c8c4ecd8fda8ba84985d03c
+* author:	Samuel Thomas (https://sketchfab.com/SamuelTea)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Workshop" (https://sketchfab.com/3d-models/workshop-0bee3f9f3c8c4ecd8fda8ba84985d03c) by Samuel Thomas (https://sketchfab.com/SamuelTea) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
