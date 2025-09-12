@@ -121,7 +121,7 @@ export default function Home() {
         window.open('https://x.com/UseKuboNet', '_blank')
         break
       case 'GitHub':
-        alert('GitHub ouvert !')
+        window.open('https://github.com/Kubonet', '_blank')
         break
       case 'Docs':
         setShowDocs(true)
