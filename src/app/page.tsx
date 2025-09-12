@@ -6,7 +6,7 @@ import { Suspense, useEffect, useState, useRef, useMemo } from 'react'
 import { Room, triggerCameraZoomBack } from '@/components/Room'
 import { LoadingFallback } from '@/components/LoadingFallback'
 import { AudioManager } from '@/components/AudioManager'
-import { Vector3, PCFSoftShadowMap } from 'three'
+import { Vector3 } from 'three'
 
 function LockedCameraController({ onPositionChange, isZoomed }: { onPositionChange: (pos: Vector3, target: Vector3) => void, isZoomed: boolean }) {
   const { camera } = useThree()
@@ -476,18 +476,10 @@ export default function Home() {
             far: 10000,
             position: [436.107, 803.230, -2.268]
           }}
-          shadows={{
-            enabled: true,
-            type: PCFSoftShadowMap
-          }}
+          shadows
           dpr={[1, 2]}
           performance={{ min: 0.5 }}
-          gl={{
-            shadowMap: {
-              enabled: true,
-              type: PCFSoftShadowMap
-            }
-          }}
+          gl={{ preserveDrawingBuffer: true }}
         >
           {/* Very dim ambient lighting - neon will be main source */}
           <ambientLight intensity={0.1} color="#752B0C" />

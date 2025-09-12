@@ -63,7 +63,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
 
   // Create outline material for hover effect (brighter orange)
   const outlineMaterial = useMemo(() => 
-    new THREE.MeshBasicMaterial({
+    new THREE.MeshStandardMaterial({
       color: new THREE.Color(0xFFAA00), // Bright lighter orange
       side: THREE.BackSide,
       transparent: true,
@@ -176,7 +176,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           // Get UV coordinates info
           const uvAttribute = child.geometry.attributes.uv
           if (uvAttribute) {
-            const uvArray = Array.from(uvAttribute.array)
+            const uvArray = Array.from(uvAttribute.array) as number[]
             const minU = Math.min(...uvArray.filter((_, i) => i % 2 === 0))
             const maxU = Math.max(...uvArray.filter((_, i) => i % 2 === 0))
             const minV = Math.min(...uvArray.filter((_, i) => i % 2 === 1))
@@ -216,7 +216,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           if (child.material) {
             child.material.color.setHex(0xFFAA33) // Light orange color
             child.material.emissive.setHex(0xFF8833) // Bright light orange emissive
-            child.material.emissiveIntensity = 0.8
+            ;(child.material as any).emissiveIntensity = 0.8
             child.material.needsUpdate = true
             
             console.log('🔥 Tube light configured with light orange flickering material')
@@ -271,7 +271,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           areaLights.push(fillLight) // Store in array for control
           
           // Store area lights for animation
-          tubeLightSource.current.areaLights = areaLights
+          ;(tubeLightSource.current as any).areaLights = areaLights
           
           console.log('🔥 POWERFUL NEON LIGHTING SYSTEM created:')
           console.log('  Main light:', mainLight.intensity, 'at', worldPos)
@@ -286,7 +286,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           // Make screen VERY bright with strong white glow
           if (child.material) {
             child.material.emissive = new THREE.Color(0xCCCCCC) // Very bright white/gray emissive
-            child.material.emissiveIntensity = 3.5 // Much brighter
+            ;(child.material as any).emissiveIntensity = 3.5 // Much brighter
             child.material.needsUpdate = true
             console.log('✨ Screen made VERY bright with strong white glow')
           }
@@ -327,7 +327,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           }
           
           // Store area lights in main light for control
-          screenLight.areaLights = screenAreaLights
+          ;(screenLight as any).areaLights = screenAreaLights
           
           console.log('💡 POWERFUL white screen lighting system created:')
           console.log('  Main light:', screenLight.intensity, 'at', worldScreenPos)
@@ -431,9 +431,9 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
         
         // Re-enable OrbitControls and sync with exact coordinates
         if (controls && 'target' in controls) {
-          controls.target.set(-458.732, 446.169, 913.022)
-          controls.update()
-          controls.enabled = true
+          ;(controls as any).target.set(-458.732, 446.169, 913.022)
+          ;(controls as any).update()
+          ;(controls as any).enabled = true
         }
         
         // Notify parent that we're now zoomed in
@@ -485,15 +485,15 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
       
       if (!isBlinking.current) {
         // Neon is ON - Normal lighting
-        tubeLightRef.current.material.emissiveIntensity = 1.5
+        ;(tubeLightRef.current.material as any).emissiveIntensity = 1.5
         
         // Main light at 70% power (30% reduction from before)
         tubeLightSource.current.intensity = 87.5 // 70% of 125
         tubeLightSource.current.visible = true
         
         // Area lights - 70% power
-        if (tubeLightSource.current.areaLights) {
-          tubeLightSource.current.areaLights.forEach((light, index) => {
+        if ((tubeLightSource.current as any).areaLights) {
+          ;(tubeLightSource.current as any).areaLights.forEach((light: any, index: number) => {
             if (light.isDirectionalLight) {
               // Directional fill light - 70% power
               light.intensity = 1.05 // 70% of 1.5
@@ -507,15 +507,15 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
         }
       } else {
         // Neon is OFF - Complete darkness during blink
-        tubeLightRef.current.material.emissiveIntensity = 0.0
+        ;(tubeLightRef.current.material as any).emissiveIntensity = 0.0
         
         // Turn off main light
         tubeLightSource.current.intensity = 0.0
         tubeLightSource.current.visible = false
         
         // Turn off ALL area lights
-        if (tubeLightSource.current.areaLights) {
-          tubeLightSource.current.areaLights.forEach(light => {
+        if ((tubeLightSource.current as any).areaLights) {
+          ;(tubeLightSource.current as any).areaLights.forEach((light: any) => {
             light.intensity = 0.0
             light.visible = false
           })
@@ -533,8 +533,8 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
     // Set back to original position and update controls target
     camera.position.copy(originalCameraPosition.current)
     if (controls && 'target' in controls) {
-      controls.target.copy(originalCameraTarget.current)
-      controls.update()
+      ;(controls as any).target.copy(originalCameraTarget.current)
+      ;(controls as any).update()
     }
     
     // Set internal zoomed state back to false
@@ -651,7 +651,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
         animationProgress.current = 0
         // Disable OrbitControls during animation to prevent fighting
         if (controls) {
-          controls.enabled = false
+          ;(controls as any).enabled = false
         }
         setIsZoomingToComputer(true)
       }
