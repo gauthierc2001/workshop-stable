@@ -27,10 +27,7 @@ export function LoadingFallback() {
           <img 
             src="/images/logo.jpg" 
             alt="Kubo Logo" 
-            className="w-24 h-24 rounded-full mx-auto object-cover shadow-2xl"
-            style={{
-              filter: 'drop-shadow(0 0 20px rgba(235, 119, 59, 0.5))'
-            }}
+            className="w-32 h-32 rounded-full mx-auto object-cover"
           />
         </div>
         
