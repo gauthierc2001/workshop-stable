@@ -24,6 +24,7 @@ export function AudioManager({ ambientSrc, volume = 0.3 }: AudioManagerProps) {
       // Handle loading events
       const handleCanPlay = () => {
         setIsLoaded(true)
+        console.log('🔊 Ambient sound loaded successfully')
         // Try to autoplay when loaded
         if (!isMuted) {
           audio.play().catch((error) => {
@@ -34,7 +35,7 @@ export function AudioManager({ ambientSrc, volume = 0.3 }: AudioManagerProps) {
       }
 
       const handleError = (error: any) => {
-        console.error('Audio loading error:', error)
+        console.error('❌ Ambient sound loading failed:', error)
       }
 
       audio.addEventListener('canplaythrough', handleCanPlay)
@@ -94,7 +95,13 @@ export function AudioManager({ ambientSrc, volume = 0.3 }: AudioManagerProps) {
       className="fixed top-4 right-4 z-50 bg-black bg-opacity-70 hover:bg-opacity-90 text-white p-3 rounded-lg transition-all duration-200 hover:scale-105"
       title={isMuted ? 'Unmute ambient sound' : 'Mute ambient sound'}
     >
-      {isMuted ? (
+      {!isLoaded ? (
+        // Loading icon
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 6v6l4 2"></path>
+        </svg>
+      ) : isMuted ? (
         // Muted icon
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>

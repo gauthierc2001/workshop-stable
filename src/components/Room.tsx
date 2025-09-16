@@ -32,9 +32,9 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
   // Clone the scene to avoid modifying the original
   const clonedScene = useMemo(() => scene.clone(), [scene])
   
-  // Store camera positions for zoom animation (NEW BASE POSITION)
-  const originalCameraPosition = useRef(new THREE.Vector3(436.107, 803.230, -2.268))
-  const originalCameraTarget = useRef(new THREE.Vector3(350.323, 783.240, 45.076))
+  // Store camera positions for zoom animation (UPDATED TO NEW FIXED POSITION)
+  const originalCameraPosition = useRef(new THREE.Vector3(-160.56, 686.20, 98.60))
+  const originalCameraTarget = useRef(new THREE.Vector3(-634.75, 669.00, 820.31))
   const computerPosition = useRef<THREE.Vector3 | null>(null)
   const computerTargetPosition = useRef(new THREE.Vector3(-458.672, 446.169, 912.762))
   const computerTargetLookAt = useRef(new THREE.Vector3(-458.732, 446.169, 913.022))
@@ -44,8 +44,19 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
   const tubeLightRef = useRef<THREE.Mesh | null>(null)
   const tubeLightSource = useRef<THREE.PointLight | null>(null)
   const blinkTime = useRef(0)
-  const nextBlinkDuration = useRef(1.5) // Random duration between 1-2.5s
+  const nextBlinkDuration = useRef(3.0) // Random duration between 2-8s (doubled)
   const isBlinking = useRef(false)
+  
+  // Glitchy effect state
+  const glitchIntensity = useRef(0)
+  const glitchTime = useRef(0)
+  const isGlitching = useRef(false)
+  const visualDelay = useRef(0)
+  const pendingStateChange = useRef<boolean | null>(null)
+  
+  // Neon sound duration tracking
+  const neonSoundDuration = useRef(0)
+  const neonOnStartTime = useRef(0)
   
   // Screen light emission
   const screenLightSource = useRef<THREE.PointLight | null>(null)
@@ -56,20 +67,66 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
       const audio = new Audio('/sound/click.mp3')
       audio.preload = 'auto'
       audio.volume = 0.7 // Adjust volume as needed
+      audio.loop = false
+      
+      // Add loading event listeners
+      audio.addEventListener('canplaythrough', () => {
+        console.log('🔊 Click sound loaded successfully')
+      })
+      
+      audio.addEventListener('error', (error) => {
+        console.error('❌ Click sound loading failed:', error)
+      })
+      
       return audio
     }
     return null
   }, [])
 
-  // Create outline material for hover effect (brighter orange)
+  // Audio setup for neon sound
+  const neonAudio = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      const audio = new Audio('/sound/neon.mp3')
+      audio.preload = 'auto'
+      audio.volume = 0.6 // Adjust volume as needed
+      audio.loop = false
+      
+      // Add loading event listeners
+      audio.addEventListener('canplaythrough', () => {
+        console.log('🔊 Neon sound loaded successfully')
+        // Get the duration when loaded
+        neonSoundDuration.current = audio.duration || 0
+        console.log('🔊 Neon sound duration:', neonSoundDuration.current.toFixed(2) + 's')
+      })
+      
+      audio.addEventListener('error', (error) => {
+        console.error('❌ Neon sound loading failed:', error)
+      })
+      
+      // Add event listener for when sound ends
+      audio.addEventListener('ended', () => {
+        console.log('🔊 Neon sound ended, turning off neon')
+        // Force turn off neon when sound ends
+        if (!isBlinking.current) {
+          isBlinking.current = true
+          console.log('💡 Neon turned OFF due to sound ending')
+        }
+      })
+      
+      return audio
+    }
+    return null
+  }, [])
+
+  // Create outline material for hover effect (warm sand tone) - clean precise glow
   const outlineMaterial = useMemo(() => 
     new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0xFFAA00), // Bright lighter orange
+      color: new THREE.Color(0xf5deb3), // Warm sand color
       side: THREE.BackSide,
       transparent: true,
-      opacity: 0.9,
-      emissive: new THREE.Color(0xFF8800), // Add emissive glow
-      emissiveIntensity: 0.3
+      opacity: 0.8,
+      emissive: new THREE.Color(0xf5deb3), // Warm sand emissive glow
+      emissiveIntensity: 0.4 // Moderate emissive intensity for clean glow
     }), []
   )
 
@@ -130,11 +187,11 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
         // Reduce roughness for more pronounced light interaction
         material.roughness = Math.max((material.roughness || 0.5) - 0.2, 0.05)
         
-        // Tint the base color toward orange for better harmony
+        // Tint the base color toward warm sand for better harmony
         if (material.color) {
-          // Mix with orange tint
-          const orangeTint = new THREE.Color(0x752B0C)
-          material.color.lerp(orangeTint, 0.15)
+          // Mix with warm sand tint
+          const sandTint = new THREE.Color(0xf5deb3)
+          material.color.lerp(sandTint, 0.15)
           material.color.multiplyScalar(1.2)
         }
         
@@ -142,11 +199,11 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
         material.needsUpdate = true
       }
       
-      // For basic materials, apply orange tinting directly
+      // For basic materials, apply warm sand tinting directly
       if (material.isMeshBasicMaterial || material.isMeshLambertMaterial) {
         if (material.color) {
-          const orangeTint = new THREE.Color(0x752B0C)
-          material.color.lerp(orangeTint, 0.2)
+          const sandTint = new THREE.Color(0xf5deb3)
+          material.color.lerp(sandTint, 0.2)
         }
         material.needsUpdate = true
       }
@@ -162,45 +219,47 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
         child.receiveShadow = true
         child.frustumCulled = true
         
-        // Log screen dimensions for texture sizing
-        if (child.name.includes('Screen')) {
-          const box = new THREE.Box3().setFromObject(child)
-          const size = box.getSize(new THREE.Vector3())
-          const aspectRatio = size.x / size.y
-          
-          console.log('🖥️ SCREEN MESH ANALYSIS:')
-          console.log(`Screen Object: ${child.name}`)
-          console.log(`3D Dimensions: ${size.x.toFixed(4)} x ${size.y.toFixed(4)} x ${size.z.toFixed(4)} units`)
-          console.log(`Aspect Ratio: ${aspectRatio.toFixed(4)} (${aspectRatio > 1 ? 'landscape' : 'portrait'})`)
-          
-          // Get UV coordinates info
-          const uvAttribute = child.geometry.attributes.uv
-          if (uvAttribute) {
-            const uvArray = Array.from(uvAttribute.array) as number[]
-            const minU = Math.min(...uvArray.filter((_, i) => i % 2 === 0))
-            const maxU = Math.max(...uvArray.filter((_, i) => i % 2 === 0))
-            const minV = Math.min(...uvArray.filter((_, i) => i % 2 === 1))
-            const maxV = Math.max(...uvArray.filter((_, i) => i % 2 === 1))
+          // Log screen dimensions for texture sizing
+          if (child.name.includes('Screen')) {
+            const box = new THREE.Box3().setFromObject(child)
+            const size = box.getSize(new THREE.Vector3())
+            const aspectRatio = size.x / size.y
             
-            console.log(`UV Mapping: U[${minU.toFixed(3)}, ${maxU.toFixed(3)}] V[${minV.toFixed(3)}, ${maxV.toFixed(3)}]`)
+            console.log('🖥️ ===== COMPUTER SCREEN DIMENSIONS =====')
+            console.log(`Screen Object: ${child.name}`)
+            console.log(`3D Dimensions: ${size.x.toFixed(4)} x ${size.y.toFixed(4)} x ${size.z.toFixed(4)} units`)
+            console.log(`Aspect Ratio: ${aspectRatio.toFixed(4)} (${aspectRatio > 1 ? 'landscape' : 'portrait'})`)
+            console.log('=========================================')
+            
+            // Get UV coordinates info
+            const uvAttribute = child.geometry.attributes.uv
+            if (uvAttribute) {
+              const uvArray = Array.from(uvAttribute.array) as number[]
+              const minU = Math.min(...uvArray.filter((_, i) => i % 2 === 0))
+              const maxU = Math.max(...uvArray.filter((_, i) => i % 2 === 0))
+              const minV = Math.min(...uvArray.filter((_, i) => i % 2 === 1))
+              const maxV = Math.max(...uvArray.filter((_, i) => i % 2 === 1))
+              
+              console.log(`UV Mapping: U[${minU.toFixed(3)}, ${maxU.toFixed(3)}] V[${minV.toFixed(3)}, ${maxV.toFixed(3)}]`)
+            }
+            
+            // Multiple recommended sizes based on common screen ratios
+            console.log('📐 RECOMMENDED IMAGE SIZES:')
+            
+            // Based on actual aspect ratio
+            const sizes = [512, 1024, 1536, 2048]
+            sizes.forEach(width => {
+              const height = Math.round(width / aspectRatio)
+              console.log(`- ${width}x${height} pixels (${aspectRatio.toFixed(2)}:1 ratio)`)
+            })
+            
+            // Common screen ratios for comparison
+            console.log('📺 Common ratios for reference:')
+            console.log('- 16:9 (widescreen): 1024x576, 1920x1080')
+            console.log('- 4:3 (classic): 1024x768, 1280x960') 
+            console.log('- 16:10 (monitor): 1024x640, 1920x1200')
+            console.log('=========================================')
           }
-          
-          // Multiple recommended sizes based on common screen ratios
-          console.log('📐 RECOMMENDED IMAGE SIZES:')
-          
-          // Based on actual aspect ratio
-          const sizes = [512, 1024, 1536, 2048]
-          sizes.forEach(width => {
-            const height = Math.round(width / aspectRatio)
-            console.log(`- ${width}x${height} pixels (${aspectRatio.toFixed(2)}:1 ratio)`)
-          })
-          
-          // Common screen ratios for comparison
-          console.log('📺 Common ratios for reference:')
-          console.log('- 16:9 (widescreen): 1024x576, 1920x1080')
-          console.log('- 4:3 (classic): 1024x768, 1280x960') 
-          console.log('- 16:10 (monitor): 1024x640, 1920x1200')
-        }
         
         // Check if this is the computer, mouse, screen, or tube light object
         const isHoverableObject = child.name.includes('Computer') || child.name.includes('Mouse2') || child.name.includes('Screen')
@@ -212,14 +271,14 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           console.log('💡 TUBE LIGHT FOUND:', child.name)
           tubeLightRef.current = child
           
-          // Setup flickering neon material (lighter orange)
+          // Setup flickering neon material (warm sand tone)
           if (child.material) {
-            child.material.color.setHex(0xFFAA33) // Light orange color
-            child.material.emissive.setHex(0xFF8833) // Bright light orange emissive
+            child.material.color.setHex(0xf5deb3) // Warm sand color
+            child.material.emissive.setHex(0xf5deb3) // Warm sand emissive
             ;(child.material as any).emissiveIntensity = 0.8
             child.material.needsUpdate = true
             
-            console.log('🔥 Tube light configured with light orange flickering material')
+            console.log('🔥 Tube light configured with warm sand flickering material')
           }
           
           // Create POWERFUL neon lighting system that REALLY lights the room
@@ -233,7 +292,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           child.localToWorld(worldPos.copy(center))
           
           // MAIN LIGHT - 70% of original (30% more reduction)
-          const mainLight = new THREE.PointLight(0xFFAA33, 70.0, 50, 0.1)
+          const mainLight = new THREE.PointLight(0xf5deb3, 70.0, 50, 0.1)
           mainLight.position.copy(worldPos)
           mainLight.castShadow = true
           mainLight.shadow.mapSize.width = 1024
@@ -248,7 +307,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           // Additional AREA LIGHTING - 70% of original (30% more reduction)
           const areaLights = []
           for (let i = 0; i < 5; i++) {
-            const areaLight = new THREE.PointLight(0xFFAA33, 28.0, 25, 0.2)
+            const areaLight = new THREE.PointLight(0xf5deb3, 28.0, 25, 0.2)
             const spreadPos = worldPos.clone()
             spreadPos.x += (i - 2) * 0.4 // Spread along tube length
             spreadPos.y += Math.sin(i) * 0.1 // Slight vertical variation
@@ -260,7 +319,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           }
           
           // DIRECTIONAL FILL LIGHT - 70% of original (30% more reduction)
-          const fillLight = new THREE.DirectionalLight(0xFFAA33, 0.7)
+          const fillLight = new THREE.DirectionalLight(0xf5deb3, 0.7)
           fillLight.position.copy(worldPos)
           fillLight.position.y += 2
           fillLight.target.position.set(worldPos.x, worldPos.y - 3, worldPos.z)
@@ -273,7 +332,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           // Store area lights for animation
           ;(tubeLightSource.current as any).areaLights = areaLights
           
-          console.log('🔥 POWERFUL NEON LIGHTING SYSTEM created:')
+          console.log('🔥 POWERFUL WARM SAND LIGHTING SYSTEM created:')
           console.log('  Main light:', mainLight.intensity, 'at', worldPos)
           console.log('  Area lights:', areaLights.length - 1, 'point lights + 1 directional')
           console.log('  Total power: ~', mainLight.intensity + (areaLights.length * 60))
@@ -283,12 +342,12 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
         if (isScreen) {
           console.log('🖥️ SCREEN FOUND:', child.name)
           
-          // Make screen VERY bright with strong white glow
+          // Make screen VERY bright with warm sand glow
           if (child.material) {
-            child.material.emissive = new THREE.Color(0xCCCCCC) // Very bright white/gray emissive
+            child.material.emissive = new THREE.Color(0xf5deb3) // Warm sand emissive
             ;(child.material as any).emissiveIntensity = 3.5 // Much brighter
             child.material.needsUpdate = true
-            console.log('✨ Screen made VERY bright with strong white glow')
+            console.log('✨ Screen made VERY bright with warm sand glow')
           }
           
           // Create POWERFUL white light emission from screen
@@ -302,8 +361,8 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           // Position light slightly in front of screen
           worldScreenPos.z += 0.3
           
-          // MAIN SCREEN LIGHT - Very powerful white light
-          const screenLight = new THREE.PointLight(0xFFFFFF, 25.0, 15, 0.3)
+          // MAIN SCREEN LIGHT - Very powerful warm sand light
+          const screenLight = new THREE.PointLight(0xf5deb3, 25.0, 15, 0.3)
           screenLight.position.copy(worldScreenPos)
           screenLight.castShadow = true
           screenLight.shadow.mapSize.width = 512
@@ -315,7 +374,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           // Additional AREA LIGHTING around the screen for realistic glow
           const screenAreaLights = []
           for (let i = 0; i < 3; i++) {
-            const areaLight = new THREE.PointLight(0xFFFFFF, 12.0, 8, 0.5)
+            const areaLight = new THREE.PointLight(0xf5deb3, 12.0, 8, 0.5)
             const spreadPos = worldScreenPos.clone()
             spreadPos.x += (i - 1) * 0.2 // Spread horizontally
             spreadPos.y += Math.cos(i) * 0.1 // Slight vertical variation
@@ -329,7 +388,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           // Store area lights in main light for control
           ;(screenLight as any).areaLights = screenAreaLights
           
-          console.log('💡 POWERFUL white screen lighting system created:')
+          console.log('💡 POWERFUL warm sand screen lighting system created:')
           console.log('  Main light:', screenLight.intensity, 'at', worldScreenPos)
           console.log('  Area lights:', screenAreaLights.length, 'additional lights')
           console.log('  Total screen power:', screenLight.intensity + (screenAreaLights.length * 12))
@@ -341,10 +400,10 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
             child.userData.originalMaterial = child.material
           }
           
-          // Create outline mesh for this object
+          // Create outline mesh for this object - clean precise glow
           const outlineGeometry = child.geometry.clone()
           const outlineMesh = new THREE.Mesh(outlineGeometry, outlineMaterial.clone())
-          outlineMesh.scale.setScalar(1.02) // Slightly larger for outline effect
+          outlineMesh.scale.setScalar(1.03) // Precise, clean outline that follows the shape
           outlineMesh.visible = false
           outlineMesh.userData.isOutline = true
           outlineMesh.userData.parentName = child.name
@@ -358,11 +417,11 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
           const size = bbox.getSize(new THREE.Vector3())
           const center = bbox.getCenter(new THREE.Vector3())
           
-          // Create larger invisible geometry for easier detection
+          // Create much larger invisible geometry for easier detection
           const hoverGeometry = new THREE.BoxGeometry(
-            size.x * 1.5, // 50% larger
-            size.y * 1.5,
-            size.z * 1.5
+            size.x * 2.0, // 100% larger for easier hover detection
+            size.y * 2.0,
+            size.z * 2.0
           )
           const hoverMaterial = new THREE.MeshBasicMaterial({
             transparent: true,
@@ -458,7 +517,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
       const t = animationProgress.current
       const easedProgress = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
       
-      // Smooth animation of both position and look direction
+      // Smooth animation from current camera position to computer target
       camera.position.lerpVectors(originalCameraPosition.current, computerTargetPosition.current, easedProgress)
       
       // Also smoothly interpolate where the camera is looking during animation
@@ -467,40 +526,114 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
       camera.lookAt(currentLookTarget)
     }
     
-    // Tube light random blinking animation
+    // Tube light blinking animation with sound-synchronized timing
     if (tubeLightRef.current && tubeLightSource.current) {
       blinkTime.current += delta
+      glitchTime.current += delta
+      visualDelay.current += delta
       
       // Check if it's time for next blink event
       if (blinkTime.current >= nextBlinkDuration.current) {
         // Start a new blink cycle
-        isBlinking.current = !isBlinking.current
+        const wasBlinking = isBlinking.current
+        const newState = !isBlinking.current
+        
+        // Play neon sound ONLY when turning ON
+        if (neonAudio && !newState) { // newState is false when turning ON
+          neonAudio.currentTime = 0
+          neonAudio.play().catch((error) => {
+            console.log('Neon audio play failed:', error)
+          })
+          console.log('🔊 Playing neon sound for turning ON')
+          
+          // Record when neon turned on
+          neonOnStartTime.current = blinkTime.current
+        }
+        
+        // Stop neon sound instantly when turning OFF
+        if (neonAudio && newState && !wasBlinking) { // Turning OFF
+          neonAudio.pause()
+          neonAudio.currentTime = 0
+          console.log('🔊 Neon sound stopped instantly')
+        }
+        
+        // Set up delayed visual change (50ms after sound)
+        pendingStateChange.current = newState
+        visualDelay.current = 0
+        
+        // Start glitch effect IMMEDIATELY
+        isGlitching.current = true
+        glitchTime.current = 0
+        glitchIntensity.current = 1.0
+        
+        // Reset timing - use sound duration if available, otherwise fallback
         blinkTime.current = 0
+        if (neonSoundDuration.current > 0 && !newState) {
+          // When turning ON, use sound duration + small buffer
+          nextBlinkDuration.current = neonSoundDuration.current + 0.5
+          console.log('💡 Using sound duration:', neonSoundDuration.current.toFixed(2) + 's')
+        } else {
+          // When turning OFF, use random longer duration
+          nextBlinkDuration.current = 2.0 + Math.random() * 6.0 // 2-8 seconds
+        }
         
-        // Set next random duration between 1.0 and 4.0 seconds
-        nextBlinkDuration.current = 1.0 + Math.random() * 3.0
+        console.log('💡 Neon blink event scheduled:', newState ? 'OFF' : 'ON', 'Next in:', nextBlinkDuration.current.toFixed(2) + 's')
+      }
+      
+      // Apply visual change after delay
+      if (pendingStateChange.current !== null && visualDelay.current >= 0.05) {
+        isBlinking.current = pendingStateChange.current
+        pendingStateChange.current = null
+        console.log('💡 Visual state applied:', isBlinking.current ? 'OFF' : 'ON')
+      }
+      
+      // Glitch effect animation
+      if (isGlitching.current) {
+        glitchTime.current += delta
+        const glitchDuration = 0.3 // Glitch for 300ms
         
-        console.log('💡 Neon blink event:', isBlinking.current ? 'OFF' : 'ON', 'Next in:', nextBlinkDuration.current.toFixed(2) + 's')
+        if (glitchTime.current < glitchDuration) {
+          // Create glitchy intensity variation
+          const glitchProgress = glitchTime.current / glitchDuration
+          glitchIntensity.current = 1.0 - glitchProgress + Math.sin(glitchTime.current * 50) * 0.3 * (1 - glitchProgress)
+          
+          // Apply glitch to neon material
+          if (tubeLightRef.current.material) {
+            const baseIntensity = isBlinking.current ? 0.0 : 1.5
+            ;(tubeLightRef.current.material as any).emissiveIntensity = baseIntensity + (glitchIntensity.current * 0.5)
+          }
+        } else {
+          isGlitching.current = false
+          glitchIntensity.current = 0
+        }
       }
       
       if (!isBlinking.current) {
-        // Neon is ON - Normal lighting
-        ;(tubeLightRef.current.material as any).emissiveIntensity = 1.5
+        // Neon is ON - Normal lighting with glitch effect
+        const baseIntensity = 1.5
+        const glitchModifier = isGlitching.current ? glitchIntensity.current * 0.5 : 0
+        ;(tubeLightRef.current.material as any).emissiveIntensity = baseIntensity + glitchModifier
         
-        // Main light at 70% power (30% reduction from before)
-        tubeLightSource.current.intensity = 87.5 // 70% of 125
+        // Main light at 70% power with glitch variation
+        const baseIntensityLight = 87.5
+        const glitchLightModifier = isGlitching.current ? glitchIntensity.current * 20 : 0
+        tubeLightSource.current.intensity = baseIntensityLight + glitchLightModifier
         tubeLightSource.current.visible = true
         
-        // Area lights - 70% power
+        // Area lights - 70% power with glitch variation
         if ((tubeLightSource.current as any).areaLights) {
           ;(tubeLightSource.current as any).areaLights.forEach((light: any, index: number) => {
             if (light.isDirectionalLight) {
-              // Directional fill light - 70% power
-              light.intensity = 1.05 // 70% of 1.5
+              // Directional fill light - 70% power with glitch
+              const baseIntensityDir = 1.05
+              const glitchDirModifier = isGlitching.current ? glitchIntensity.current * 0.3 : 0
+              light.intensity = baseIntensityDir + glitchDirModifier
               light.visible = true
             } else {
-              // Point lights - 70% power
-              light.intensity = 35.0 // 70% of 50
+              // Point lights - 70% power with glitch
+              const baseIntensityPoint = 35.0
+              const glitchPointModifier = isGlitching.current ? glitchIntensity.current * 10 : 0
+              light.intensity = baseIntensityPoint + glitchPointModifier
               light.visible = true
             }
           })
@@ -530,7 +663,7 @@ export function Room({ position = [0, 0, 0], scale = 1, screenTexture, onZoomSta
     setIsZoomingToComputer(false)
     animationProgress.current = 0
     
-    // Set back to original position and update controls target
+    // Set back to new fixed position and update controls target
     camera.position.copy(originalCameraPosition.current)
     if (controls && 'target' in controls) {
       ;(controls as any).target.copy(originalCameraTarget.current)

@@ -14,21 +14,21 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "KuboNet",
-  description: "Discover KuboNet, the foundational blockchain protocol for robotics coordination. Explore the future of robotic interoperability in an immersive 3D workshop environment.",
-  keywords: "KuboNet, robotics, blockchain, protocol, interoperability, robotics internet protocol, automation",
-  authors: [{ name: "KuboNet" }],
+  title: "Kova Systems",
+  description: "Discover Kova Systems, the decentralized protocol for collecting and distributing sensory data from robots. Explore Proof of Sensory Contribution (PoSC) in an immersive 3D workshop environment.",
+  keywords: "Kova Systems, robotics, blockchain, protocol, sensory data, PoSC, proof of sensory contribution, automation, AI datasets",
+  authors: [{ name: "Kova Systems" }],
   openGraph: {
-    title: "KuboNet - Robotics Internet Protocol",
-    description: "Discover KuboNet, the foundational blockchain protocol for robotics coordination. Explore the future of robotic interoperability.",
-    url: "https://kubonet.com",
-    siteName: "KuboNet",
+    title: "Kova Systems - Proof of Sensory Contribution",
+    description: "Discover Kova Systems, the decentralized protocol for collecting and distributing sensory data from robots. Explore the future of robotic data economy.",
+    url: "https://kovasystems.com",
+    siteName: "Kova Systems",
     images: [
       {
-        url: "/images/logo.jpg",
+        url: "/images/logo.png",
         width: 1200,
         height: 630,
-        alt: "KuboNet - Robotics Internet Protocol",
+        alt: "Kova Systems - Proof of Sensory Contribution",
       },
     ],
     locale: "en_US",
@@ -36,10 +36,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "KuboNet - Robotics Internet Protocol",
-    description: "Discover KuboNet, the foundational blockchain protocol for robotics coordination.",
-    images: ["/images/logo.jpg"],
-    creator: "@UseKuboNet",
+    title: "Kova Systems - Proof of Sensory Contribution",
+    description: "Discover Kova Systems, the decentralized protocol for collecting and distributing sensory data from robots.",
+    images: ["/images/logo.png"],
+    creator: "@KovaSystems",
   },
   robots: {
     index: true,
