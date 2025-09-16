@@ -53,9 +53,9 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/images/logo.jpg',
-    shortcut: '/images/logo.jpg',
-    apple: '/images/logo.jpg',
+    icon: '/images/logo.png',
+    shortcut: '/images/logo.png',
+    apple: '/images/logo.png',
   },
 };
 
@@ -67,9 +67,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/images/logo.jpg" type="image/jpeg" />
-        <link rel="shortcut icon" href="/images/logo.jpg" type="image/jpeg" />
-        <link rel="apple-touch-icon" href="/images/logo.jpg" />
+        <link rel="icon" href="/images/logo.png" type="image/png" />
+        <link rel="shortcut icon" href="/images/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased w-full h-full`}
