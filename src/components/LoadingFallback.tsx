@@ -1,5 +1,5 @@
 import { AnimatedLoadingScreen } from './AnimatedLoadingScreen'
 
 export function LoadingFallback() {
-  return <AnimatedLoadingScreen />
+  return <AnimatedLoadingScreen onEnterKova={() => {}} />
 }
